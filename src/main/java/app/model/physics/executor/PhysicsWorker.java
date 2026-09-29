@@ -1,4 +1,7 @@
-package app.model.physics;
+package app.model.physics.executor;
+
+import app.model.Physics;
+import app.model.active_components.SimpleBarrier;
 
 public class PhysicsWorker extends Thread {
     private final Physics physics;

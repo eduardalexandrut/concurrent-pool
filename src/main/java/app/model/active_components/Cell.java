@@ -1,4 +1,8 @@
-package app.model.physics;
+package app.model.active_components;
+
+import app.model.AbstractPhysics;
+import app.model.Physics;
+import app.model.entities.game.Ball;
 
 import java.util.ArrayList;
 import java.util.Iterator;

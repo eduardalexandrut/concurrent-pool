@@ -1,4 +1,10 @@
-package app.model.physics;
+package app.model.physics.multi_thread;
+
+import app.model.AbstractPhysics;
+import app.model.Physics;
+import app.model.active_components.SimpleBarrier;
+import app.model.entities.game.Board;
+import app.model.physics.executor.PhysicsWorker;
 
 public class MultiThreadPhysics extends AbstractPhysics implements Physics {
 

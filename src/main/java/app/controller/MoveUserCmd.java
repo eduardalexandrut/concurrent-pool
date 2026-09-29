@@ -1,7 +1,7 @@
 package app.controller;
 
 
-import app.model.physics.Physics;
+import app.model.Physics;
 
 public class MoveUserCmd implements Cmd {
     private String key;

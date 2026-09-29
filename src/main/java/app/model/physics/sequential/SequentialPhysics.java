@@ -1,4 +1,8 @@
-package app.model.physics;
+package app.model.physics.sequential;
+
+import app.model.AbstractPhysics;
+import app.model.Physics;
+import app.model.entities.game.Board;
 
 public class SequentialPhysics extends AbstractPhysics implements Physics {
 

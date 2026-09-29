@@ -1,9 +1,9 @@
 package app.view;
 
 import app.controller.Controller;
-import app.model.physics.BallState;
-import app.model.physics.Hole;
-import app.model.physics.Physics;
+import app.model.entities.game.BallState;
+import app.model.entities.game.Hole;
+import app.model.Physics;
 
 import javax.swing.*;
 import java.awt.*;

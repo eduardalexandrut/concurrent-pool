@@ -1,4 +1,9 @@
-package app.model.physics;
+package app.model;
+
+import app.model.active_components.Cell;
+import app.model.entities.game.*;
+import app.model.entities.physics.P2d;
+import app.model.entities.physics.V2d;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -92,7 +97,7 @@ public abstract class AbstractPhysics implements Physics {
         }
     }
 
-    void syncBoard(final Board board) {
+    protected void syncBoard(final Board board) {
 
         for (final Ball ball : board.getBalls()) {
             int r = (int) (ball.getPos().y() / this.cellHeight);
@@ -106,7 +111,7 @@ public abstract class AbstractPhysics implements Physics {
         }
     }
 
-    void transferToCorrectCell(Ball b) {
+    protected void transferToCorrectCell(Ball b) {
         // 1. Calculate the indices based on the ball's current position
         int r = (int) (b.getPos().y() / this.cellHeight);
         int c = (int) (b.getPos().x() / this.cellWidth);

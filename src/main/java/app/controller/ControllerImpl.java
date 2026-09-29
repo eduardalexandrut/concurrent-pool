@@ -1,9 +1,9 @@
 package app.controller;
 
 
-import app.model.physics.BallState;
-import app.model.physics.Hole;
-import app.model.physics.Physics;
+import app.model.entities.game.BallState;
+import app.model.entities.game.Hole;
+import app.model.Physics;
 
 import java.util.List;
 

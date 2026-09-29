@@ -1,4 +1,6 @@
-package app.model.physics;
+package app.model.entities.game;
+
+import app.model.entities.physics.V2d;
 
 public class NpcThread extends Thread {
     private final Ball npcBall;

@@ -1,4 +1,7 @@
-package app.model.physics;
+package app.model.entities.game;
+
+import app.model.entities.physics.P2d;
+import app.model.entities.physics.V2d;
 
 public class Ball {
 

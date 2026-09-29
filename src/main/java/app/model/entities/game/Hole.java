@@ -1,4 +1,6 @@
-package app.model.physics;
+package app.model.entities.game;
+
+import app.model.entities.physics.P2d;
 
 public record Hole(P2d position, int radius) {
 

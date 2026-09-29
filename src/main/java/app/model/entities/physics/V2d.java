@@ -1,4 +1,4 @@
-package app.model.physics;
+package app.model.entities.physics;
 
 public record V2d(double x, double y)  {
 

@@ -1,8 +1,8 @@
 package app.controller;
 
 
-import app.model.physics.BallState;
-import app.model.physics.Hole;
+import app.model.entities.game.BallState;
+import app.model.entities.game.Hole;
 
 import java.util.List;
 

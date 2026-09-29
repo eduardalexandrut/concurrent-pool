@@ -1,4 +1,10 @@
-package app.model.physics;
+package app.model;
+
+import app.model.entities.game.Ball;
+import app.model.entities.game.BallState;
+import app.model.entities.game.Board;
+import app.model.entities.game.Hole;
+import app.model.entities.physics.P2d;
 
 import java.util.List;
 

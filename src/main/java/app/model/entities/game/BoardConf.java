@@ -1,4 +1,4 @@
-package app.model.physics;
+package app.model.entities.game;
 
 import java.util.List;
 

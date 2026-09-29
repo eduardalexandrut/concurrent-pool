@@ -1,4 +1,8 @@
-package app.model.physics;
+package app.model.physics.executor;
+
+import app.model.AbstractPhysics;
+import app.model.Physics;
+import app.model.entities.game.Board;
 
 import java.util.ArrayList;
 import java.util.List;

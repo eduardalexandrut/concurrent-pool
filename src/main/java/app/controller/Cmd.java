@@ -1,7 +1,7 @@
 package app.controller;
 
 
-import app.model.physics.Physics;
+import app.model.Physics;
 
 public interface Cmd {
 	

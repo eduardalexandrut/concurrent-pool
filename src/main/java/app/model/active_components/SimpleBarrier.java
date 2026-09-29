@@ -1,4 +1,4 @@
-package app.model.physics;
+package app.model.active_components;
 
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;

@@ -1,6 +1,9 @@
 package app.model.physics;
 
 
+import app.model.AbstractPhysics;
+import app.model.Physics;
+import app.model.entities.physics.V2d;
 import app.view.View;
 
 import javax.swing.*;
