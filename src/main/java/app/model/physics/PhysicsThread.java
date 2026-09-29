@@ -1,6 +1,7 @@
 package app.model.physics;
 
-import pcd.poool.view.View;
+
+import app.view.View;
 
 import javax.swing.*;
 
