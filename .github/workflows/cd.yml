@@ -2,7 +2,7 @@ name: Release on Breaking Change
 
 on:
   push:
-    branches: ["master"]
+    branches: ["main"]
 
 permissions:
   contents: write
@@ -33,7 +33,7 @@ jobs:
           # Configuriamo semantic-release affinché generi una release SOLO se c'è un breaking change (major)
           # Regola: 2=Major/Breaking, 1=Minor, 0=Patch. Vogliamo rilasciare solo se level >= 2 (o se forziamo major).
           branches: |
-            ['master']
+            ['main']
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
