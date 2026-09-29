@@ -1,1 +1,1 @@
-# Model Checking
+# Model-Checking
