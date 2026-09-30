@@ -16,6 +16,7 @@ public class View extends JFrame {
     private final Physics model;
     private final Controller controller;
     private final VisualiserPanel panel;
+    private final Timer renderTimer; // Add the timer
 
 
     public View(Physics model, Controller controller, int w, int h){
@@ -63,9 +64,10 @@ public class View extends JFrame {
         this.setFocusable(true);
         this.requestFocusInWindow();
 
-    }
-
-    public void render(){
+        this.renderTimer = new Timer(16, e -> {
+            panel.repaint();
+        });
+        this.renderTimer.start();
 
     }
 

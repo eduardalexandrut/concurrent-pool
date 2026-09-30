@@ -14,18 +14,17 @@ public class App {
         Board board = new Board(1200, 1200);
         Physics physics = new MultiThreadPhysics(board, 20, 20);
 
-
         // Start the Engines
         ControllerImpl controller = new ControllerImpl(physics);
-        //controller.start();
 
-        // Open the Window
+        // 1. Start the Physics Engine independent of the UI
+        PhysicsThread physicsThread = new PhysicsThread(physics);
+        physicsThread.start();
+
+        // 2. Open the Window on the Swing Event Dispatch Thread
         SwingUtilities.invokeLater(() -> {
             View view = new View(physics, controller, 1200, 1200);
             view.setVisible(true);
-
-            PhysicsThread physicsThread = new PhysicsThread(physics, view);
-            physicsThread.start();
         });
     }
 }
