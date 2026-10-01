@@ -55,18 +55,20 @@ public abstract class AbstractPhysics implements Physics {
         this.leftHole = new Hole(new P2d(0,0), 100);
         this.rightHole = new Hole(new P2d(board.getWidth(), 0), 100);
 
-        this.npcBall = new Ball(
+        this.npcBall = new UserBall(
                 new P2d(300, 300),
                 30,
                 10.0,
-                new V2d(10, 10)
+                new V2d(10, 10),
+                UserBall.BALL_TYPE.HUMAN
         );
 
         this.userBall = new UserBall(
                 new P2d(300, 300),
                 30,
                 100.0,
-                new V2d(10, 10)
+                new V2d(10, 10),
+                UserBall.BALL_TYPE.BOT
         );
 
         this.gameState.set(AbstractPhysics.GameState.RUNNING);
@@ -142,6 +144,10 @@ public abstract class AbstractPhysics implements Physics {
                 cell.lock();
                 try {
                     for (Ball b : cell.getBalls()) {
+                        // Ignore User and NPC
+                        if (b == this.userBall || b == this.npcBall) {
+                            continue;
+                        }
                         snapshot.add(BallState.fromBall(b));
                     }
                 } finally {

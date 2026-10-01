@@ -13,14 +13,12 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 
 public class View extends JFrame {
-    private final Physics model;
     private final Controller controller;
     private final VisualiserPanel panel;
     private final Timer renderTimer; // Add the timer
 
 
-    public View(Physics model, Controller controller, int w, int h){
-        this.model = model;
+    public View(Controller controller, int w, int h){
         this.controller = controller;
         setTitle("Poool");
         setSize(w,h + 25);
@@ -118,17 +116,17 @@ public class View extends JFrame {
             }
 
             // Draw User's ball
-//            BallState userBall = controller.getUserBallState();
-//            // Overdraw the user ball with its specific label
-//            if (userBall != null) {
-//                this.drawBall(userBall, g2, "H");
-//            }
-//
-//            // Draw NPC's ball
-//            BallState npcBall = controller.getNPCBallState();
-//            if (npcBall != null) {
-//                this.drawBall(npcBall, g2, "B");
-//            }
+            BallState userBall = controller.getUserBallState();
+            // Overdraw the user ball with its specific label
+            if (userBall != null) {
+                this.drawBall(userBall, g2, "H");
+            }
+
+            // Draw NPC's ball
+            BallState npcBall = controller.getNPCBallState();
+            if (npcBall != null) {
+                this.drawBall(npcBall, g2, "B");
+            }
 
             // Draw left and right holes
             Hole leftHole = controller.getLeftHole();

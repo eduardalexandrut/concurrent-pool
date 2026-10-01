@@ -22,7 +22,7 @@ public class App {
         physicsThread.start();
 
         SwingUtilities.invokeLater(() -> {
-            View view = new View(physics, controller, 1200, 1200);
+            View view = new View(controller, 1200, 1200);
             view.setVisible(true);
         });
     }

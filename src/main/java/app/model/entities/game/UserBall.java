@@ -6,10 +6,18 @@ import app.model.entities.physics.V2d;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class UserBall extends Ball {
-    private final ReentrantLock lock = new ReentrantLock();
 
-    public UserBall(P2d pos, double radius, double mass, V2d vel) {
+    public enum BALL_TYPE {
+        HUMAN,
+        BOT
+    }
+
+    private final ReentrantLock lock = new ReentrantLock();
+    private final BALL_TYPE type;
+
+    public UserBall(P2d pos, double radius, double mass, V2d vel, BALL_TYPE type) {
         super(pos, radius, mass, vel);
+        this.type = type;
     }
 
     public void setPosition(P2d pos) {
@@ -39,6 +47,16 @@ public class UserBall extends Ball {
             }
         } else {
             System.out.println("UserBall lock busy, dropping input frame");
+        }
+    }
+
+    public BALL_TYPE getType() {
+        this.lock.lock();
+        try {
+            BALL_TYPE type = this.type;
+            return type;
+        } finally {
+            this.lock.unlock();
         }
     }
 }
