@@ -1,6 +1,7 @@
 package app.model.physics;
 
 
+import app.controller.Controller;
 import app.model.AbstractPhysics;
 import app.model.Physics;
 import app.model.entities.physics.V2d;
@@ -8,43 +9,30 @@ import app.model.entities.physics.V2d;
 import javax.swing.*;
 
 public class PhysicsThread extends Thread {
-    private final Physics model;
-    private final long period = 15; // 20ms = 50 FPS
+    private final Controller controller;
+    private final long period = 16;
     private long lastNpcKick = 0;
     private final long npcPeriod = 2000;
 
-    public PhysicsThread(Physics model) {
-        this.model = model;
+    public PhysicsThread(Controller controller) {
+        this.controller = controller;
     }
 
     @Override
     public void run() {
-//        long lastTime = System.nanoTime();
-//        double fps = 0;
 
-        while (!isInterrupted() && this.model.getGameState() == AbstractPhysics.GameState.RUNNING) {
-//            long now = System.nanoTime();
-//            // Calculate the time elapsed in nanoseconds
-//            long updateTime = now - lastTime;
-//            lastTime = now;
-//
-//            // Convert nanoseconds to seconds, then invert for FPS
-//            // We use a simple Alpha-Smoothing filter to stop the number from flickering
-//            double currentFps = 1_000_000_000.0 / updateTime;
-//            fps = (fps * 0.9) + (currentFps * 0.1);
-//
+        while (!isInterrupted() && this.controller.getModel().getGameState() == AbstractPhysics.GameState.RUNNING) {
+
             long start = System.currentTimeMillis();
 
             updateNpc();
 
-            model.computeState(period);
+            this.controller.getModel().computeState(period);
 
             checkEndGame();
 
-//            model.setFPS((int) fps);
 
-
-//            // 3. Regulate the speed so it doesn't run too fast
+            // Regulate the speed so it doesn't run too fast
             long used = System.currentTimeMillis() - start;
             long sleep = Math.max(0, period - used);
 
@@ -55,7 +43,7 @@ public class PhysicsThread extends Thread {
             }
         }
 
-        System.out.println("Simulation Ended. Final State: " + model.getGameState());
+        System.out.println("Simulation Ended. Final State: " + controller.getModel().getGameState());
     }
 
     /**
@@ -71,7 +59,7 @@ public class PhysicsThread extends Thread {
                     Math.random() * 200
             );
 
-            model.getNPCBall().kick(newVel);
+            controller.getModel().getNPCBall().kick(newVel);
 
             lastNpcKick = now;
         }
@@ -81,19 +69,19 @@ public class PhysicsThread extends Thread {
      * Method to check and set the endgame state(user won, npc won, draw).
      */
     private void checkEndGame() {
-        if (this.model.getGameState() != AbstractPhysics.GameState.RUNNING) {
+        if (this.controller.getModel().getGameState() != AbstractPhysics.GameState.RUNNING) {
             return;
         }
-        if (this.model.getStateSnapshot().size() <= 2) {
-            final int userScore = this.model.getUserScore();
-            final int npcScore = this.model.getNPCScore();
+        if (this.controller.getModel().getStateSnapshot().size() <= 2) {
+            final int userScore = this.controller.getModel().getUserScore();
+            final int npcScore = this.controller.getModel().getNPCScore();
 
             if (userScore > npcScore) {
-                this.model.setGameState(AbstractPhysics.GameState.USER_WON);
+                this.controller.getModel().setGameState(AbstractPhysics.GameState.USER_WON);
             } else if (userScore < npcScore) {
-                this.model.setGameState(AbstractPhysics.GameState.NPC_WON);
+                this.controller.getModel().setGameState(AbstractPhysics.GameState.NPC_WON);
             } else {
-                this.model.setGameState(AbstractPhysics.GameState.DRAW);
+                this.controller.getModel().setGameState(AbstractPhysics.GameState.DRAW);
             }
         }
     }

@@ -54,10 +54,37 @@ public interface Controller {
     List<BallState> getStateSnapshot();
 
     /**
-     * Captures and returns a thread-safe snapshot of all standard balls currently on the board.
-     * Useful for asynchronously updating the view without locking the underlying physics model.
+     * Retrieves the current frames per second (FPS) at which the physics engine or game loop is running.
      *
-     * @return a list of {@link BallState} data transfer objects representing all the small balls
+     * @return a string representation of the current FPS
+     */
+    String getCurrentFPS();
+
+    /**
+     * Retrieves the entity representing the left hole located at the top-left corner of the game board.
+     *
+     * @return the left {@link Hole}
+     */
+    Hole getLeftHole();
+
+    /**
+     * Retrieves the entity representing the right hole located at the top-right corner of the game board.
+     *
+     * @return the right {@link Hole}
+     */
+    Hole getRightHole();
+
+    /**
+     * Retrieves the current accumulated score of the human player.
+     *
+     * @return a string representation of the user's score
+     */
+    String getUserScore();
+
+    /**
+     * Retrieves the current accumulated score of the non-playable character (bot).
+     *
+     * @return a string representation of the NPC's score
      */
     String getNPCScore();
 }

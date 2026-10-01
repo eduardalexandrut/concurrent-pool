@@ -18,7 +18,7 @@ public class App {
         // Start the Engines
         ControllerImpl controller = new ControllerImpl(physics);
 
-        PhysicsThread physicsThread = new PhysicsThread(physics);
+        PhysicsThread physicsThread = new PhysicsThread(controller);
         physicsThread.start();
 
         SwingUtilities.invokeLater(() -> {
