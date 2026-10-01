@@ -8,28 +8,21 @@ import app.model.Physics;
 import java.util.List;
 
 public class ControllerImpl implements Controller {
-//    private final BoundedBuffer<Cmd> cmdBuffer;
-    private final Physics model;
+    private Physics model;
 
     public ControllerImpl(Physics model) {
         this.model = model;
-//        this.cmdBuffer = new BoundedBufferImpl<>(100);
     }
 
-//    @Override
-//    public void run() {
-//        System.out.println("Controller Thread started...");
-//        while (!isInterrupted()) {
-//            try {
-//                Cmd cmd = cmdBuffer.get();
-//                cmd.execute(model);
-//
-//            } catch (InterruptedException e) {
-//                System.out.println("Controller interrupted.");
-//                break;
-//            }
-//        }
-//    }
+    @Override
+    public Physics getModel() {
+        return this.model;
+    }
+
+    @Override
+    public void setModel(Physics model) {
+        this.model = model;
+    }
 
     @Override
     public void processInput(String key) {
