@@ -21,17 +21,24 @@ public class MultiThreadPhysics extends AbstractPhysics implements Physics {
 
         int nThreads = Runtime.getRuntime().availableProcessors();
         this.workers = new PhysicsWorker[nThreads];
-        final int rowsPerThread = this.rows / nThreads;
+        final int baseRowsPerThread = this.rows / nThreads;
+        final int remainder = this.rows % nThreads;
 
         this.barrier = new SimpleBarrier(nThreads + 1);
 
-        // Init worker threads
+        int currentRow = 0;
+
         for (int i = 0; i < nThreads; i++) {
-            int start = i * rowsPerThread;
-            int end = (i == nThreads - 1) ? rows - 1 : (start + rowsPerThread - 1);
+            int start = currentRow;
+
+            // Add an extra row for the first remainder threads
+            int rowsForThisThread = baseRowsPerThread + (i < remainder ? 1 : 0);
+            int end = start + rowsForThisThread - 1;
 
             workers[i] = new PhysicsWorker(this, start, end, barrier);
             workers[i].start();
+
+            currentRow = end + 1;
         }
 
     }
