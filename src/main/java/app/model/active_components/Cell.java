@@ -110,40 +110,13 @@ public class Cell {
                     final Ball b2 = this.balls.get(j);
 
                     if (Ball.areColliding(b1, b2)) {
-                        this.updateToucher(b1, b2);
+                        this.model.updateToucher(b1, b2);
                         Ball.resolveCollision(b1, b2);
                     }
                 }
             }
         } finally {
             this.unlock();
-        }
-    }
-
-    private void updateToucher(Ball b1, Ball b2) {
-        // If b1 is the Human Player, b2 is now "Touched by Human"
-        if (b1.equals(model.getUserBall())) {
-            b2.setLastToucher(Ball.CHARACTERS.HUMAN);
-            b2.setRemainingBounces(1);
-        }
-        // If b2 is the Human Player, b1 is now "Touched by Human"
-        else if (b2.equals(model.getUserBall())) {
-            b1.setLastToucher(Ball.CHARACTERS.HUMAN);
-            b1.setRemainingBounces(1);
-        }
-        else if (b1.equals(model.getNPCBall())) {
-            b2.setLastToucher(Ball.CHARACTERS.NPC);
-            b2.setRemainingBounces(1);
-        }
-        // If b2 is the Human Player, b1 is now "Touched by Human"
-        else if (b2.equals(model.getNPCBall())) {
-            b1.setLastToucher(Ball.CHARACTERS.NPC);
-            b1.setRemainingBounces(1);
-        }
-        // If two normal balls hit each other, they BOTH consume their "Direct Hit" status
-        else {
-            b1.consumeRemainingBounce();
-            b2.consumeRemainingBounce();
         }
     }
 

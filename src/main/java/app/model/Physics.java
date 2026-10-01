@@ -16,15 +16,6 @@ public interface Physics {
      */
     void computeState(long dt);
 
-    /**
-     * @param position The User's ball position.
-     */
-    void updateUserBall(P2d position);
-
-    /**
-     * @param ball The NPC's ball.
-     */
-    void updateNPCBall(Ball ball);
 
     /**
      * @return the current state of the User's ball.
@@ -78,4 +69,12 @@ public interface Physics {
     void setGameState(AbstractPhysics.GameState gameState);
 
     void signalCollisionsDoneForRow(int r);
+
+    /**
+     * Method to update the last toucher field of a ball, after a collision happened.
+     * It is necessary in order to track the entity that scored a goal.
+     * @param b1 first ball
+     * @param b2 second ball
+     */
+    void updateToucher(Ball b1, Ball b2);
 }

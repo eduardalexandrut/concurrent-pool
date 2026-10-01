@@ -29,7 +29,7 @@ public class ExecutorPhysics extends AbstractPhysics implements Physics {
     protected void runParallelStep(long dt) {
         List<Callable<Void>> collisionTasks = new ArrayList<>();
 
-        for (int r = 0; r <= rows; r++) {
+        for (int r = 0; r < rows; r++) {
             final int row = r;
             collisionTasks.add(() -> {
                 // collisions
@@ -49,7 +49,7 @@ public class ExecutorPhysics extends AbstractPhysics implements Physics {
 
         List<Callable<Void>> movementTasks = new ArrayList<>();
 
-        for (int r = 0; r <= rows; r++) {
+        for (int r = 0; r < rows; r++) {
             final int row = r;
             movementTasks.add(() -> {
                 // movements

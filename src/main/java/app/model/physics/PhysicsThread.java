@@ -4,7 +4,6 @@ package app.model.physics;
 import app.model.AbstractPhysics;
 import app.model.Physics;
 import app.model.entities.physics.V2d;
-import app.view.View;
 
 import javax.swing.*;
 
@@ -20,34 +19,32 @@ public class PhysicsThread extends Thread {
 
     @Override
     public void run() {
-        long lastTime = System.nanoTime();
-        double fps = 0;
+//        long lastTime = System.nanoTime();
+//        double fps = 0;
 
         while (!isInterrupted() && this.model.getGameState() == AbstractPhysics.GameState.RUNNING) {
-            long now = System.nanoTime();
-            // Calculate the time elapsed in nanoseconds
-            long updateTime = now - lastTime;
-            lastTime = now;
-
-            // Convert nanoseconds to seconds, then invert for FPS
-            // We use a simple Alpha-Smoothing filter to stop the number from flickering
-            double currentFps = 1_000_000_000.0 / updateTime;
-            fps = (fps * 0.9) + (currentFps * 0.1);
-
+//            long now = System.nanoTime();
+//            // Calculate the time elapsed in nanoseconds
+//            long updateTime = now - lastTime;
+//            lastTime = now;
+//
+//            // Convert nanoseconds to seconds, then invert for FPS
+//            // We use a simple Alpha-Smoothing filter to stop the number from flickering
+//            double currentFps = 1_000_000_000.0 / updateTime;
+//            fps = (fps * 0.9) + (currentFps * 0.1);
+//
             long start = System.currentTimeMillis();
 
-            // NPC update
             updateNpc();
 
-            // 1. Update the math (Move balls, check collisions)
             model.computeState(period);
 
             checkEndGame();
 
-            model.setFPS((int) fps);
+//            model.setFPS((int) fps);
 
 
-            // 3. Regulate the speed so it doesn't run too fast
+//            // 3. Regulate the speed so it doesn't run too fast
             long used = System.currentTimeMillis() - start;
             long sleep = Math.max(0, period - used);
 
@@ -61,6 +58,9 @@ public class PhysicsThread extends Thread {
         System.out.println("Simulation Ended. Final State: " + model.getGameState());
     }
 
+    /**
+     * Method that randomly moves the NPC's ball.
+     */
     private void updateNpc() {
         long now = System.currentTimeMillis();
 
@@ -77,6 +77,9 @@ public class PhysicsThread extends Thread {
         }
     }
 
+    /**
+     * Method to check and set the endgame state(user won, npc won, draw).
+     */
     private void checkEndGame() {
         if (this.model.getGameState() != AbstractPhysics.GameState.RUNNING) {
             return;
