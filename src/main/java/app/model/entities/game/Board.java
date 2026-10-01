@@ -8,23 +8,22 @@ import java.util.List;
 import java.util.Random;
 
 public class Board {
-        private final int NUM_BALLS = 10_000;
         private final double width;
         private final double height;
         private final List<Ball> balls;
 
-        public Board(double width, double height) {
+        public Board(double width, double height, int numBalls) {
             this.width = width;
             this.height = height;
             this.balls = new ArrayList<>();
 
             Random rand = new Random();
-            for (int i = 0; i < NUM_BALLS; i++) {
-                this.balls.add(new Ball(
-                        new P2d(rand.nextInt((int) width) + 50, rand.nextInt((int) height) + 50),
-                        3, 1.0,
-                        new V2d(0, 0)
-                ));
+            for (int i = 0; i < numBalls; i++) {
+                double x = 100 + Math.random() * (width - 50);
+                double y = 100 + Math.random() * (height - 50);
+                double vx = (Math.random() * 4) - 2;
+                double vy = (Math.random() * 4) - 2;
+                balls.add(new Ball(new P2d(x, y), 5, 1.0, new V2d(vx, vy)));
             }
         }
 

@@ -12,18 +12,9 @@ import javax.swing.*;
 
 public class App {
     public static void main(String[] args) {
-        Board board = new Board(1200, 1200);
-        Physics physics = new ExecutorPhysics(board, 20, 20);
-
-        // Start the Engines
-        ControllerImpl controller = new ControllerImpl(physics);
-
-        PhysicsThread physicsThread = new PhysicsThread(controller);
-        physicsThread.start();
-
         SwingUtilities.invokeLater(() -> {
-            View view = new View(controller, 1200, 1200);
-            view.setVisible(true);
+            GameLauncher launcher = new GameLauncher();
+            launcher.setVisible(true);
         });
     }
 }

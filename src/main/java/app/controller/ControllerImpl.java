@@ -68,4 +68,9 @@ public class ControllerImpl implements Controller {
     public String getNPCScore() {
         return String.valueOf(this.model.getNPCScore());
     }
+
+    @Override
+    public String getGameState() {
+        return this.model.getGameState().name();
+    }
 }

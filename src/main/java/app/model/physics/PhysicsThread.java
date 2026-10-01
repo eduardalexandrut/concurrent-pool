@@ -72,7 +72,7 @@ public class PhysicsThread extends Thread {
         if (this.controller.getModel().getGameState() != AbstractPhysics.GameState.RUNNING) {
             return;
         }
-        if (this.controller.getModel().getStateSnapshot().size() <= 2) {
+        if (this.controller.getModel().getStateSnapshot().isEmpty()) {
             final int userScore = this.controller.getModel().getUserScore();
             final int npcScore = this.controller.getModel().getNPCScore();
 

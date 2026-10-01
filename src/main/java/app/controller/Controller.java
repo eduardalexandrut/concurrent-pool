@@ -87,4 +87,11 @@ public interface Controller {
      * @return a string representation of the NPC's score
      */
     String getNPCScore();
+
+    /**
+     * Retrieves the current state of the game.
+     *
+     * @return the GameState enum as a String (e.g., "RUNNING", "USER_WON", etc.)
+     */
+    String getGameState();
 }
