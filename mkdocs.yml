@@ -3,18 +3,32 @@ site_description: Formal Verification and Concurrent Physics Engine
 theme:
   name: material
   palette:
-    # Tema scuro con accenti blu
-    - media: "(prefers-color-scheme: dark)"
-      scheme: slate
-      primary: blue
-      accent: indigo
-    # Tema chiaro
     - media: "(prefers-color-scheme: light)"
       scheme: default
       primary: blue
       accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Dark theme
+
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: blue
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Light theme
+
 markdown_extensions:
-  - admonition # Per i box di avviso (Warning, Info)
-  - pymdownx.highlight: # Per colorare il codice
+  - admonition
+  - pymdownx.highlight:
       anchor_linenums: true
-  - pymdownx.superfences
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+
+plugins:
+  - search
+  - with-pdf

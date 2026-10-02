@@ -28,16 +28,18 @@ jobs:
         with:
           python-version: 3.x
 
-      - name: Install MkDocs Material
-        run: pip install mkdocs-material
+      - name: Install MkDocs and Plugins
+        run: |
+          pip install mkdocs-material
+          pip install mkdocs-with-pdf
 
       - name: Build MkDocs
-        run: mkdocs build # Genera l'HTML nella cartella 'site/'
+        run: mkdocs build
 
       - name: Upload Pages Artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: './site' # Carica la cartella generata da MkDocs
+          path: './site'
 
   deploy:
     environment:
