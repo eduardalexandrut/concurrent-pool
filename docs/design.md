@@ -5,7 +5,7 @@ The system relies on a strictly decoupled Model-View-Controller (MVC) architectu
 
 The execution is driven by a dedicated active physics thread, functioning as the primary game loop. This thread continuously computes the simulation state based on a fixed time delta (`dt`) and subsequently triggers the View to repaint, ensuring the simulation logic remains decoupled from the UI rendering cycle.
 
-```
+```mermaid
 flowchart TD
     User((User))
     
@@ -19,9 +19,9 @@ flowchart TD
 
     User -->|Input Keyboard| C
     C -->|Update State| M
-    PT -->|computeState(dt)| M
-    PT -->|Trigger repaint()| V
-    V -.->|getStateSnapshot()| M
+    PT -->|computeState| M
+    PT -->|Trigger repaint| V
+    V -.->|getStateSnapshot| M
     
     style M fill:#e1f5fe,stroke:#03a9f4,stroke-width:2px
     style PT fill:#fff3e0,stroke:#ff9800,stroke-width:2px
@@ -34,7 +34,7 @@ This grid-based decomposition serves a dual purpose: it drastically reduces the 
 
 To guarantee that collisions between balls residing in adjacent cells are evaluated exactly once—and to prevent race conditions during concurrent boundary access—collision checks are strictly directional. When processing a specific cell, the engine evaluates interactions with entities solely within its own bounds and four designated neighboring cells: Right, Bottom, Bottom-Right, and Bottom-Left.
 
-```
+```mermaid
 graph TD
     subgraph Spatial Partitioning - Collision Checks
         C("Target Cell (i, j)")
@@ -68,7 +68,7 @@ The spatial grid is partitioned horizontally, with each worker permanently assig
 3. **Movement Phase:** Workers apply velocity vectors to update spatial positions for their assigned entities.
 4. **Barrier Wait:** All threads halt again, ensuring global spatial consistency before advancing the game clock.
 
-```
+```mermaid
 sequenceDiagram
     participant Master as Master (PhysicsThread)
     participant W1 as Worker 1
@@ -96,7 +96,7 @@ To leverage modern Java concurrent utilities, the third implementation abstracts
 
 During each simulation tick, the master thread submits a batch of `Callable` tasks (representing row or cell processing jobs) to the Executor. Synchronization is inherently managed by awaiting the completion of all `Future` objects representing the collision phase before generating and submitting the subsequent batch of movement tasks. This approach decouples workload definition from execution, allowing the underlying JVM to optimize thread scheduling and load balancing dynamically.
 
-```
+```mermaid
 sequenceDiagram
     participant Master as Master (PhysicsThread)
     participant Exec as ExecutorService
