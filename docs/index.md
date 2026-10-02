@@ -16,4 +16,6 @@ Use the navigation below or explore the sections to learn more:
 * [Model Checking](model-checking.md)
 
 ## Abstract
-Briefly describe what your project does here...
+A high-performance, multi-threaded physics simulation of a pool game developed in Java 21. The project focuses on
+advanced concurrent design patterns, spatial partitioning for collision optimization, custom synchronization barriers,
+and formal verification using Java PathFinder (JPF).
