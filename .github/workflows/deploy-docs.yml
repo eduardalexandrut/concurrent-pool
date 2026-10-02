@@ -1,10 +1,11 @@
-name: Deploy Markdown Docs to GitHub Pages
+name: Deploy MkDocs to GitHub Pages
 
 on:
   push:
     branches: ["main"]
     paths:
       - 'docs/**'
+      - 'mkdocs.yml'
 
 permissions:
   contents: read
@@ -22,16 +23,21 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup GitHub Pages
-        uses: actions/configure-pages@v4
-
-      - name: Setup Pages Build with Jekyll
-        uses: actions/jekyll-build-pages@v1
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
-          source: './docs' # Tells GitHub Pages to build from your docs folder
+          python-version: 3.x
+
+      - name: Install MkDocs Material
+        run: pip install mkdocs-material
+
+      - name: Build MkDocs
+        run: mkdocs build # Genera l'HTML nella cartella 'site/'
 
       - name: Upload Pages Artifact
         uses: actions/upload-pages-artifact@v3
+        with:
+          path: './site' # Carica la cartella generata da MkDocs
 
   deploy:
     environment:

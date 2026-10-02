@@ -1,0 +1,20 @@
+site_name: Poool Documentation
+site_description: Formal Verification and Concurrent Physics Engine
+theme:
+  name: material
+  palette:
+    # Tema scuro con accenti blu
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: blue
+      accent: indigo
+    # Tema chiaro
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: blue
+      accent: indigo
+markdown_extensions:
+  - admonition # Per i box di avviso (Warning, Info)
+  - pymdownx.highlight: # Per colorare il codice
+      anchor_linenums: true
+  - pymdownx.superfences
