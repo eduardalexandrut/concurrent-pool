@@ -2,12 +2,14 @@ package app.model;
 
 import app.model.entities.game.Ball;
 import app.model.entities.game.BallState;
-import app.model.entities.game.Board;
 import app.model.entities.game.Hole;
-import app.model.entities.physics.P2d;
 
 import java.util.List;
 
+/**
+ * Public interface of the physics engine, used by the Controller and the game loop.
+ * The per-row methods used by the workers are in {@link PhysicsKernel}.
+ */
 public interface Physics {
 
     /**
@@ -17,14 +19,9 @@ public interface Physics {
     void computeState(long dt);
 
     /**
-     * @param position The User's ball position.
+     * Stops the engine: worker threads terminate. After this call computeState must not be called.
      */
-    void updateUserBall(P2d position);
-
-    /**
-     * @param ball The NPC's ball.
-     */
-    void updateNPCBall(Ball ball);
+    void shutdown();
 
     /**
      * @return the current state of the User's ball.
@@ -41,10 +38,9 @@ public interface Physics {
      */
     List<BallState> getStateSnapshot();
 
-    void updateRowMovement(int r, long dt);
-
-    void resolveRowCollisions(int r);
-
+    /**
+     * Requests a new velocity for the user's ball. It is applied at the start of the next frame.
+     */
     void updateUserVelocity(double vx, double vy);
 
     void setFPS(int fps);
@@ -55,18 +51,6 @@ public interface Physics {
 
     Hole getRightHole();
 
-    Board getBoard();
-
-    double getCellH();
-
-    double getCellW();
-
-    void incrementUserScore();
-
-    void incrementNpcScore();
-
-    Ball getUserBall();
-
     Ball getNPCBall();
 
     int getUserScore();
@@ -76,6 +60,4 @@ public interface Physics {
     AbstractPhysics.GameState getGameState();
 
     void setGameState(AbstractPhysics.GameState gameState);
-
-    void signalCollisionsDoneForRow(int r);
 }

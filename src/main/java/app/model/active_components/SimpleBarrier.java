@@ -17,7 +17,13 @@ public class SimpleBarrier {
         this.members = members;
     }
 
-    public void await() {
+    /**
+     * Waits until all members have called await().
+     *
+     * @throws InterruptedException if the thread is interrupted while waiting. In that case the thread
+     *                              withdraws its arrival, so the barrier stays consistent for the others.
+     */
+    public void await() throws InterruptedException {
         lock.lock();
         try {
             int myGeneration = generation;
@@ -32,11 +38,17 @@ public class SimpleBarrier {
             }
 
             while (myGeneration == generation) {
-                allArrived.await();
+                try {
+                    allArrived.await();
+                } catch (InterruptedException e) {
+                    if (myGeneration == generation) {
+                        arrivedMembers--;   // the barrier has not tripped yet: withdraw
+                        throw e;
+                    }
+                    // the barrier tripped anyway: pass, but keep the interrupt for the caller
+                    Thread.currentThread().interrupt();
+                }
             }
-
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
         } finally {
             lock.unlock();
         }

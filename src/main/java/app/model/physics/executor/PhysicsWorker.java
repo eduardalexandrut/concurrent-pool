@@ -1,15 +1,16 @@
 package app.model.physics.executor;
 
 import app.model.Physics;
+import app.model.PhysicsKernel;
 import app.model.active_components.SimpleBarrier;
 
 public class PhysicsWorker extends Thread {
-    private final Physics physics;
+    private final PhysicsKernel physics;
     private final SimpleBarrier barrier;
     private final int startRow, endRow;
     private volatile long dt;
 
-    public PhysicsWorker(Physics physics, int startRow, int endRow, SimpleBarrier barrier) {
+    public PhysicsWorker(PhysicsKernel physics, int startRow, int endRow, SimpleBarrier barrier) {
         this.physics = physics;
         this.startRow = startRow;
         this.endRow = endRow;
@@ -22,24 +23,33 @@ public class PhysicsWorker extends Thread {
 
     @Override
     public void run() {
-        while (!isInterrupted()) {
-            barrier.await();
+        try {
+            while (true) {
+                barrier.await();
 
-            // Phase 1: resolve collisions for my rows
-            for (int r = startRow; r <= endRow; r++) {
-                physics.resolveRowCollisions(r);
-                // Signal all cells in row r AND row r+1 boundary that I'm done touching them
-                physics.signalCollisionsDoneForRow(r);
+                // Released by shutdown(): terminate
+                if (!physics.isRunning()) {
+                    return;
+                }
+
+                // Phase 1: resolve collisions for my rows
+                for (int r = startRow; r <= endRow; r++) {
+                    physics.resolveRowCollisions(r);
+                    // Signal all cells in row r AND row r+1 boundary that I'm done touching them
+                    physics.signalCollisionsDoneForRow(r);
+                }
+
+                // Phase 2: update movement — each cell blocks until all collision workers are done
+                for (int r = startRow; r <= endRow; r++) {
+                    physics.updateRowMovement(r, dt);
+                }
+
+                barrier.await();
             }
-
-            // Phase 2: update movement — each cell blocks until all collision workers are done
-            for (int r = startRow; r <= endRow; r++) {
-                physics.updateRowMovement(r, dt);
-            }
-
-            barrier.await();
+        } catch (InterruptedException e) {
+            // interrupted while waiting at the barrier: terminate
         }
-
     }
 
 }
+

@@ -3,42 +3,25 @@ package app.model.entities.game;
 import app.model.entities.physics.P2d;
 import app.model.entities.physics.V2d;
 
-import java.util.concurrent.locks.ReentrantLock;
-
+/**
+ * One of the two big balls (user or NPC).
+ * Like every other ball, it is protected by the lock of the cell that contains it.
+ */
 public class UserBall extends Ball {
-    private final ReentrantLock lock = new ReentrantLock();
 
-    public UserBall(P2d pos, double radius, double mass, V2d vel) {
+    public enum BALL_TYPE {
+        HUMAN,
+        BOT
+    }
+
+    private final BALL_TYPE type;
+
+    public UserBall(P2d pos, double radius, double mass, V2d vel, BALL_TYPE type) {
         super(pos, radius, mass, vel);
+        this.type = type;
     }
 
-    public void setPosition(P2d pos) {
-        this.lock.lock();
-        try {
-            this.setPosition(pos);
-        } finally {
-            this.lock.unlock();
-        }
-    }
-
-    @Override
-    public P2d getPos() {
-        this.lock.lock();
-        try {
-            P2d pos = super.getPos();
-            return new P2d(pos.x(), pos.y());
-        } finally { this.lock.unlock(); }
-    }
-
-    public void setVelocity(V2d vel) {
-        if (this.lock.tryLock()) {
-            try {
-                super.kick(vel);
-            } finally {
-                this.lock.unlock();
-            }
-        } else {
-            System.out.println("UserBall lock busy, dropping input frame");
-        }
+    public BALL_TYPE getType() {
+        return this.type;
     }
 }

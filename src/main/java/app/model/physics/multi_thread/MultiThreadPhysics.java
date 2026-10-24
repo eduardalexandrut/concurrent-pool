@@ -12,6 +12,10 @@ public class MultiThreadPhysics extends AbstractPhysics implements Physics {
     private PhysicsWorker[] workers;
 
     public MultiThreadPhysics(Board board, int rows, int cols) {
+        this(board, rows, cols, Runtime.getRuntime().availableProcessors());
+    }
+
+    public MultiThreadPhysics(Board board, int rows, int cols, int nThreads) {
         super(board, rows, cols);
 
         this.transferToCorrectCell(this.npcBall);
@@ -19,21 +23,26 @@ public class MultiThreadPhysics extends AbstractPhysics implements Physics {
 
         this.syncBoard(board);
 
-        int nThreads = Runtime.getRuntime().availableProcessors();
         this.workers = new PhysicsWorker[nThreads];
-        final int rowsPerThread = this.rows / nThreads;
+        final int baseRowsPerThread = this.rows / nThreads;
+        final int remainder = this.rows % nThreads;
 
         this.barrier = new SimpleBarrier(nThreads + 1);
 
-        // Init worker threads
+        int currentRow = 0;
+
         for (int i = 0; i < nThreads; i++) {
-            int start = i * rowsPerThread;
-            int end = (i == nThreads - 1) ? rows - 1 : (start + rowsPerThread - 1);
+            int start = currentRow;
+
+            // Add an extra row for the first remainder threads
+            int rowsForThisThread = baseRowsPerThread + (i < remainder ? 1 : 0);
+            int end = start + rowsForThisThread - 1;
 
             workers[i] = new PhysicsWorker(this, start, end, barrier);
             workers[i].start();
-        }
 
+            currentRow = end + 1;
+        }
     }
 
     @Override
@@ -42,8 +51,28 @@ public class MultiThreadPhysics extends AbstractPhysics implements Physics {
             w.setDt(dt);
         }
 
-        barrier.await();
-        barrier.await();
+        try {
+            barrier.await();    // start of the frame: release the workers
+            barrier.await();    // end of the frame: wait for all the workers
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    /**
+     * Called by shutdown() after the running flag has been set to false: the workers are waiting
+     * at the start barrier, so one more await() releases them, they see the flag and terminate.
+     */
+    @Override
+    protected void stopWorkers() {
+        try {
+            barrier.await();
+            for (PhysicsWorker w : workers) {
+                w.join();
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
     }
 
 }
