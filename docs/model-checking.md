@@ -1,53 +1,126 @@
 # Model-Checking
-To formally verify the concurrent correctness of the physics engine—specifically the absence of deadlocks and race 
-conditions during spatial partitioning and boundary crossings—we employed **Java PathFinder (JPF)**. Given the complexity 
-of analyzing multi-threaded GUI applications, the verification was strictly isolated to the core physics domain.
+To verify the correctness of the multithreaded engine, the absence of deadlocks and of race conditions on the cells,
+I used **Java PathFinder (JPF)**. JPF executes the program on its own virtual machine and explores all the possible
+interleavings of its threads. The verification is limited to the physics engine (`MultiThreadPhysics`), without the
+GUI.
 
-## Environment Configuration and Code Adaptation
+## Environment Configuration
+JPF (`jpf-core`, branch `master`) runs on **JDK 11** and executes Java 11 bytecode. The code was adapted once, so that
+the same sources compile both for the game (Java 21) and for JPF (Java 11):
 
-Integrating JPF into a modern Java 21 codebase required significant structural adaptations, as the current jpf-core
-relies on Java 11 bytecode and internal JVM structures that have since been encapsulated or removed. The following steps
-were executed to establish a compatible verification environment:
+- **No records.** `P2d`, `V2d`, `BallState`, `Hole` and `Boundary` are normal final classes with the same accessor
+  methods (`x()`, `y()`, `pos()`, ...).
+- **No Java 12+ syntax.** `stream().toList()` was replaced with `Collections.unmodifiableList(...)`, and the
+  `switch` with arrows in `MoveUserCmd` with a classic `switch`.
+- **Maven profile.** `mvn -P jpf clean compile` produces Java 11 bytecode in `target/classes`.
 
-- **Bytecode Downgrade:** The pom.xml was temporarily reconfigured to set both the compiler source and target to Java 11.
-- **Language Feature Refactoring**: Modern Java constructs unsupported by JPF were manually refactored. Specifically,
-Java 14+ record classes (such as `P2d`, `V2d`, and `BallState`) were converted into standard immutable POJOs,
-and Java 16+ Stream API calls (`.stream().toList()`) were replaced with standard collection instantiations (e.g., `new ArrayList<>(...)`).
-- **Module System Bypass:** To allow JPF's NativePeer classes to access internal JDK mechanisms (like Unsafe and Reflection),
-the tool was launched directly via its JAR executable, injecting specific JVM module-opening flags
-(`--add-exports java.base/jdk.internal.misc=ALL-UNNAMED --add-opens java.base/java.lang=ALL-UNNAMED`).
+JPF executes `ReentrantLock` and `Condition` directly (their implementation in the JDK 11 library), so the `Cell` and
+`SimpleBarrier` monitors are verified exactly as they are used in the game.
+
+## First Attempt
+The first version of the test harness ran out of memory after about 15 minutes (`OutOfMemoryError`, 285,637 new
+states, maximum depth 86). The problem was not in the monitors but in the configuration and in the harness itself:
+
+- **Breadth-first search.** `search.class = BFSHeuristic` keeps in memory all the states of the current level of the
+  search. The default depth-first search only keeps the current path. With a maximum depth of 86, no execution was
+  ever explored until the end.
+- **`cg.threads.break_arrays = true`.** It adds a thread switch at every access to a shared array. The array
+  `cells[r][c]` is read all the time, so the number of interleavings exploded.
+- **The balls never reached the engine.** `board.getBalls()` returned a new (or unmodifiable) list, so
+  `board.getBalls().add(b1)` did not add anything to the board: the engine ran with no small balls, and the final
+  check would have failed.
+- **The workers never terminated.** After `main` ended, the workers stayed blocked on the barrier forever. JPF reports
+  this situation as a deadlock, so the harness could never pass, even with infinite memory. Running the new harness
+  without the call to `shutdown()` confirms it: JPF finds the deadlock immediately (264 states, less than a second):
+
+```text
+gov.nasa.jpf.vm.NotDeadlockedProperty
+deadlock encountered:
+  thread app.model.physics.executor.PhysicsWorker:{id:1,name:Thread-1,status:WAITING,...}
+  thread app.model.physics.executor.PhysicsWorker:{id:2,name:Thread-2,status:WAITING,...}
+	at java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:2081)
+	at app.model.active_components.SimpleBarrier.await(SimpleBarrier.java:42)
+```
 
 ## Test Harness Design
-Running a model checker on the full 5,000-ball simulation would immediately trigger a State Explosion due to the massive
-number of possible thread interleavings. To mitigate this, a highly constrained test harness (`JPFTestHarness`) was engineered:
-- **Minimal State Space**: The test instantiated a 200x200 logical board with exactly zero random entities.
-- **Controlled Collision**: Three specific balls were manually injected. Two were positioned on a direct collision course
-exactly on the boundary of a cell (coordinates 99,99 and 101,101), forcing two distinct worker threads to negotiate locks
-for the collision and the subsequent cell transfer. A third stationary ball was placed safely away as a control entity.
-- **Restricted Execution:** The MultiThreadPhysics engine was configured with a minimal 2x2 spatial grid (4 monitor cells)
-and restricted to compute exactly two simulation frames (dt = 16ms).
-- **Invariant Verification**: An assertion was placed at the end of the execution (`assert totalBalls == 3`) to guarantee that
-no entities were duplicated, overwritten, or lost during the concurrent memory updates.
+The new harness (`JPFTestHarness`) uses the smallest configuration that still exercises every synchronisation
+mechanism:
+
+- a 400x400 board with a grid of **2 rows x 1 column** and **2 workers**, one row each;
+- **two small balls overlapping on the border between the rows** (y = 197 and y = 204) and moving towards each other,
+  plus a third ball in row 1 away from them. The two player balls are also on the board, in row 1;
+- **1 frame** (the number of frames can be passed as an argument), then `shutdown()`.
+
+With this set-up, in a single frame:
+
+- worker 0 computes the collision across the border, holding the locks of both cells (lock ordering), while worker 1
+  computes the collisions inside the cell of row 1 (contention on the same lock);
+- the movement of the cell of row 1 must wait on its counter until worker 0 has signalled it (the `Condition`);
+- the bounce moves a ball across the border, so it is transferred to the other cell, where the frame stamp prevents it
+  from being moved twice;
+- `shutdown()` releases the workers from the barrier and joins them.
+
+The properties checked are:
+
+- **no deadlock** (`NotDeadlockedProperty`), including at the end of the program: the workers must terminate;
+- **no uncaught exception** (`NoUncaughtExceptionsProperty`). At the end the harness checks that the number of small
+  balls is still 3 and throws an `AssertionError` otherwise, so a lost or duplicated ball is reported as an error;
+- **no data race** on shared fields (`PreciseRaceDetector` listener): two threads accessing the same field, at least
+  one writing, without a lock in common.
+
+## Configuration
+`poool.jpf`:
+
+```properties
+target = app.model.physics.JPFTestHarness
+target.args = 1
+classpath = target/classes
+
+search.class = gov.nasa.jpf.search.DFSearch
+search.properties = gov.nasa.jpf.vm.NotDeadlockedProperty,gov.nasa.jpf.vm.NoUncaughtExceptionsProperty
+listener = gov.nasa.jpf.listener.PreciseRaceDetector
+
+report.console.property_violation = error,trace
+```
 
 ## Execution and Results
+Environment: `jpf-core` branch `master`, Temurin JDK 11.0.24, `JVM_FLAGS=-Xmx4g`.
 
-The model checking execution provided a textbook demonstration of the **State Explosion Problem** inherent in verifying 
-fine-grained concurrent architectures.
+| Result | New states | Visited states | Backtracked | Max depth | Time | Memory |
+|---|---:|---:|---:|---:|---:|---:|
+| no errors detected | 4,055,363 | 7,738,505 | 11,793,868 | 600 | 19 min 08 s | 342 MB |
 
-After running for approximately 15 minutes, the JPF search exhausted the allocated JVM heap space,
-terminating with a `[SEVERE] JPF out of memory` and a `java.lang.OutOfMemoryError`. Before termination,
-the engine successfully explored a massive state space:
+The search **completed**: all the interleavings of this configuration were explored, and in none of them there is a
+deadlock, a data race, or a lost or duplicated ball, and the workers always terminate after `shutdown()`.
 
-* **New states generated:** 285,637
-* **States visited:** 512,515
-* **Backtracked transitions:** 798,151
-* **Maximum search depth:** 86
+The number of states is large compared to the size of the program because `ReentrantLock` and `Condition` are
+implemented in Java with atomic operations, and every one of them is a point where JPF tries all the possible thread
+switches. Memory is not a problem any more thanks to the depth-first search (342 MB); the limit is time. More frames
+can be verified with `+target.args=2`, but the time grows a lot.
 
-The stack trace at the moment of memory exhaustion explicitly showed the `PhysicsWorker` threads actively negotiating the
-`java.util.concurrent.locks.ReentrantLock` and `SimpleBarrier.await()` operations during the `resolveRowCollisions` phase.
+## Limitations
+- The verification is exhaustive only for the configuration of the harness (2 workers, 2 rows, 1 frame). The
+  arguments for the general case are the ones in [Behaviour](behaviour.md): the lock ordering on the cell ids and
+  the counters work in the same way for any number of rows and workers.
+- The executor version is not verified with JPF, because the thread pool would add many more states. It uses the same
+  per-row code, and `invokeAll` acts as a barrier between the phases.
+- The GUI is not part of the verification.
 
-**Conclusion:**
-Even within a strictly constrained environment (a 2x2 grid, 3 entities, and only 2 simulation frames), the sheer number 
-of possible thread interleavings generated by the two-phase barrier synchronization and monitor-based cell locking proved
-computationally intractable for exhaustive verification. However, within the nearly 800,000 state transitions explored
-before the memory threshold was reached, **no deadlocks or race conditions were detected**.
+## How to Run
+1. Install a **JDK 11** and build `jpf-core`:
+   ```bash
+   git clone https://github.com/javapathfinder/jpf-core.git
+   cd jpf-core
+   ./gradlew buildJars        # with JAVA_HOME pointing to the JDK 11
+   ```
+2. Compile the project for JPF, from the project folder:
+   ```bash
+   mvn -P jpf clean compile
+   ```
+3. Run JPF with the JDK 11 on the `PATH`:
+   ```bash
+   export JVM_FLAGS="-Xmx4g"
+   /path/to/jpf-core/bin/jpf poool.jpf
+   ```
+4. `no errors detected` at the end of the output means that the search finished without finding errors. In case of
+   an error, the `trace` section shows the sequence of thread switches that leads to it.
