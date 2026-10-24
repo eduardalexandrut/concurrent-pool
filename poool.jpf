@@ -1,0 +1,12 @@
+# Specifica la classe da testare
+target = app.model.physics.JPFTestHarness
+
+# Specifica dove trovare i file compilati (adatta questo percorso in base al tuo IDE/Maven)
+classpath = target/classes
+
+# Euristiche per evitare l'esplosione degli stati
+search.class = .search.heuristic.BFSHeuristic
+cg.threads.break_arrays = true
+
+# Cosa vogliamo riportare in caso di errore
+report.console.property_violation = error,trace
