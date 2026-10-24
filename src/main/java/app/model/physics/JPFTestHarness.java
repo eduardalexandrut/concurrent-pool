@@ -1,42 +1,42 @@
 package app.model.physics;
 
 
-import app.model.Physics;
-import app.model.entities.game.Board;
 import app.model.entities.game.Ball;
+import app.model.entities.game.Board;
 import app.model.entities.physics.P2d;
 import app.model.entities.physics.V2d;
 import app.model.physics.multi_thread.MultiThreadPhysics;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class JPFTestHarness {
 
     public static void main(String[] args) {
-        // 1. Simulate a very small environment
-        Board board = new Board(200, 200, 0);
+        int frames = args.length > 0 ? Integer.parseInt(args[0]) : 1;
 
-        board.getBalls().clear();
+        // 1. Ball setup: two balls on the border between the two rows, moving towards each other,
+        //    and a third one far from the others
+        List<Ball> balls = new ArrayList<>();
+        balls.add(new Ball(new P2d(200, 197), 5, 1.0, new V2d(0, 50)));
+        balls.add(new Ball(new P2d(200, 204), 5, 1.0, new V2d(0, -50)));
+        balls.add(new Ball(new P2d(200, 300), 5, 1.0, new V2d(0, 0)));
 
-        // 2. Ball setup on the borders
-        Ball b1 = new Ball(new P2d(99, 99), 10, 1.0, new V2d(2, 2));
-        Ball b2 = new Ball(new P2d(101, 101), 10, 1.0, new V2d(-2, -2));
-        Ball b3 = new Ball(new P2d(20, 20), 10, 1.0, new V2d(0, 0));
+        // 2. Very small environment: 2 rows x 1 column, 2 workers (one row each)
+        Board board = new Board(400, 400, balls);
+        MultiThreadPhysics physics = new MultiThreadPhysics(board, 2, 1, 2);
 
-        board.getBalls().add(b1);
-        board.getBalls().add(b2);
-        board.getBalls().add(b3);
-
-        // 3. Init Physisics
-        Physics physics = new MultiThreadPhysics(board, 2, 2, 2);
-
-        // 4. Simulate only 2 frames
-        long dt = 16;
-        physics.computeState(dt);
-        physics.computeState(dt);
-
+        // 3. Simulate a few frames, then stop the workers
+        for (int i = 0; i < frames; i++) {
+            physics.computeState(16);
+        }
         int totalBalls = physics.getStateSnapshot().size();
+        physics.shutdown();
 
-        // Check that no ball has been overwritten or lost due to race conditions
-        assert totalBalls == 3 : "RACE CONDITION: Number of balls altered!";
+        // Check that no ball has been lost or duplicated due to race conditions
+        if (totalBalls != 3) {
+            throw new AssertionError("RACE CONDITION: Number of balls altered: " + totalBalls);
+        }
 
         System.out.println("Test JPF completed.");
     }
