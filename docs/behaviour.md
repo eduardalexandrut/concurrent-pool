@@ -57,30 +57,30 @@ lock with the higher id first.
 
 ```mermaid
 flowchart TB
-    subgraph U["Without ordering: X takes c1 then c2, Y takes c2 then c1"]
-        direction LR
-        uX0(("X idle ●")) --> uXa["X takes c1"]:::tr
-        uC1(("c1 free ●")) --> uXa
-        uXa --> uX1(("X holds c1"))
-        uX1 --> uXb["X takes c2"]:::tr
-        uC2(("c2 free ●")) --> uXb
-        uXb --> uX2(("X holds both"))
-        uX2 --> uXr["X releases"]:::tr
-        uXr --> uX0
-        uXr --> uC1
-        uXr --> uC2
-
-        uY0(("Y idle ●")) --> uYa["Y takes c2"]:::tr
-        uC2 --> uYa
-        uYa --> uY1(("Y holds c2"))
-        uY1 --> uYb["Y takes c1"]:::tr
-        uC1 --> uYb
-        uYb --> uY2(("Y holds both"))
-        uY2 --> uYr["Y releases"]:::tr
-        uYr --> uY0
-        uYr --> uC1
-        uYr --> uC2
-    end
+%%    subgraph U["Without ordering: X takes c1 then c2, Y takes c2 then c1"]
+%%        direction LR
+%%        uX0(("X idle ●")) --> uXa["X takes c1"]:::tr
+%%        uC1(("c1 free ●")) --> uXa
+%%        uXa --> uX1(("X holds c1"))
+%%        uX1 --> uXb["X takes c2"]:::tr
+%%        uC2(("c2 free ●")) --> uXb
+%%        uXb --> uX2(("X holds both"))
+%%        uX2 --> uXr["X releases"]:::tr
+%%        uXr --> uX0
+%%        uXr --> uC1
+%%        uXr --> uC2
+%%
+%%        uY0(("Y idle ●")) --> uYa["Y takes c2"]:::tr
+%%        uC2 --> uYa
+%%        uYa --> uY1(("Y holds c2"))
+%%        uY1 --> uYb["Y takes c1"]:::tr
+%%        uC1 --> uYb
+%%        uYb --> uY2(("Y holds both"))
+%%        uY2 --> uYr["Y releases"]:::tr
+%%        uYr --> uY0
+%%        uYr --> uC1
+%%        uYr --> uC2
+%%    end
 
     subgraph O["With ordering (implementation): both take c2 first"]
         direction LR
@@ -115,69 +115,119 @@ it is a **deadlock**. With ordering, the thread that takes `c2` first is the onl
 other is still idle; every reachable marking enables at least one transition, so there is **no deadlock**. The same
 argument works with any number of cells, because the ids give a total order on all the locks.
 
-### 3. The counter between the two phases
-This net models one cell of a row `r ≥ 1` during one frame. The collision work of rows `r-1` (job 1) and `r` (job 2)
-must signal the cell before the worker of row `r` can move its balls.
+[//]: # (### 3. The counter between the two phases)
 
-```mermaid
-flowchart LR
-    D(("game loop ●"))
-    P(("pending"))
-    J1w(("job 1 working"))
-    J1d(("job 1 done"))
-    J2w(("job 2 working"))
-    J2d(("job 2 done"))
-    Mw(("mover waiting"))
-    Mm(("mover moving"))
+[//]: # (This net models one cell of a row `r ≥ 1` during one frame. The collision work of rows `r-1` &#40;job 1&#41; and `r` &#40;job 2&#41;)
 
-    tB["initFrame(2)"]:::tr
-    tS1["job 1: signalCollisionsDone()"]:::tr
-    tS2["job 2: signalCollisionsDone()"]:::tr
-    tP["mover: await returns"]:::tr
+[//]: # (must signal the cell before the worker of row `r` can move its balls.)
 
-    D --> tB
-    tB -- "2" --> P
-    tB --> J1w
-    tB --> J2w
-    tB --> Mw
+[//]: # ()
+[//]: # (```mermaid)
 
-    J1w --> tS1
-    P --> tS1
-    tS1 --> J1d
+[//]: # (flowchart LR)
 
-    J2w --> tS2
-    P --> tS2
-    tS2 --> J2d
+[//]: # (    D&#40;&#40;"game loop ●"&#41;&#41;)
 
-    Mw --> tP
-    P --o tP
-    tP --> Mm
+[//]: # (    P&#40;&#40;"pending"&#41;&#41;)
 
-    classDef tr fill:#263238,color:#ffffff,stroke:#263238
-```
+[//]: # (    J1w&#40;&#40;"job 1 working"&#41;&#41;)
 
-`initFrame(2)` puts two tokens in `pending` (the counter `pendingCollisionWorkers`). Each signal removes one. The
-transition `await returns` is the exit from `while (pendingCollisionWorkers > 0) collisionsComplete.await();`: the
-inhibitor arc means it can fire only when `pending` is empty.
+[//]: # (    J1d&#40;&#40;"job 1 done"&#41;&#41;)
 
-**Properties.**
+[//]: # (    J2w&#40;&#40;"job 2 working"&#41;&#41;)
 
-- `M(pending) + M(job 1 done) + M(job 2 done) = 2`: the counter is never negative and never larger than 2.
-- `mover moving` can be marked only after both signals: the balls of a cell never move while a collision job that
-  touches that cell is still running.
-- From every reachable marking the mover can eventually move, because the jobs never wait before signalling: there is
-  no deadlock between the two phases.
+[//]: # (    J2d&#40;&#40;"job 2 done"&#41;&#41;)
 
-The same cell as a state diagram:
+[//]: # (    Mw&#40;&#40;"mover waiting"&#41;&#41;)
 
-```mermaid
-stateDiagram-v2
-    [*] --> Colliding: initFrame(k), pending = k
-    Colliding --> Colliding: signalCollisionsDone() [pending > 1]
-    Colliding --> Movable: signalCollisionsDone() [pending = 1] / signalAll()
-    Movable --> Moved: updateMovement()
-    Moved --> Colliding: initFrame(k) of the next frame
-```
+[//]: # (    Mm&#40;&#40;"mover moving"&#41;&#41;)
+
+[//]: # ()
+[//]: # (    tB["initFrame&#40;2&#41;"]:::tr)
+
+[//]: # (    tS1["job 1: signalCollisionsDone&#40;&#41;"]:::tr)
+
+[//]: # (    tS2["job 2: signalCollisionsDone&#40;&#41;"]:::tr)
+
+[//]: # (    tP["mover: await returns"]:::tr)
+
+[//]: # ()
+[//]: # (    D --> tB)
+
+[//]: # (    tB -- "2" --> P)
+
+[//]: # (    tB --> J1w)
+
+[//]: # (    tB --> J2w)
+
+[//]: # (    tB --> Mw)
+
+[//]: # ()
+[//]: # (    J1w --> tS1)
+
+[//]: # (    P --> tS1)
+
+[//]: # (    tS1 --> J1d)
+
+[//]: # ()
+[//]: # (    J2w --> tS2)
+
+[//]: # (    P --> tS2)
+
+[//]: # (    tS2 --> J2d)
+
+[//]: # ()
+[//]: # (    Mw --> tP)
+
+[//]: # (    P --o tP)
+
+[//]: # (    tP --> Mm)
+
+[//]: # ()
+[//]: # (    classDef tr fill:#263238,color:#ffffff,stroke:#263238)
+
+[//]: # (```)
+
+[//]: # ()
+[//]: # (`initFrame&#40;2&#41;` puts two tokens in `pending` &#40;the counter `pendingCollisionWorkers`&#41;. Each signal removes one. The)
+
+[//]: # (transition `await returns` is the exit from `while &#40;pendingCollisionWorkers > 0&#41; collisionsComplete.await&#40;&#41;;`: the)
+
+[//]: # (inhibitor arc means it can fire only when `pending` is empty.)
+
+[//]: # ()
+[//]: # (**Properties.**)
+
+[//]: # ()
+[//]: # (- `M&#40;pending&#41; + M&#40;job 1 done&#41; + M&#40;job 2 done&#41; = 2`: the counter is never negative and never larger than 2.)
+
+[//]: # (- `mover moving` can be marked only after both signals: the balls of a cell never move while a collision job that)
+
+[//]: # (  touches that cell is still running.)
+
+[//]: # (- From every reachable marking the mover can eventually move, because the jobs never wait before signalling: there is)
+
+[//]: # (  no deadlock between the two phases.)
+
+[//]: # ()
+[//]: # (The same cell as a state diagram:)
+
+[//]: # ()
+[//]: # (```mermaid)
+
+[//]: # (stateDiagram-v2)
+
+[//]: # (    [*] --> Colliding: initFrame&#40;k&#41;, pending = k)
+
+[//]: # (    Colliding --> Colliding: signalCollisionsDone&#40;&#41; [pending > 1])
+
+[//]: # (    Colliding --> Movable: signalCollisionsDone&#40;&#41; [pending = 1] / signalAll&#40;&#41;)
+
+[//]: # (    Movable --> Moved: updateMovement&#40;&#41;)
+
+[//]: # (    Moved --> Colliding: initFrame&#40;k&#41; of the next frame)
+
+[//]: # (```)
 
 ### 4. A whole frame
 The full protocol for the smallest interesting case: the game loop, two workers (W1 owns row 0, W2 owns row 1) and a

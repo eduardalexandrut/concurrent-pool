@@ -20,27 +20,31 @@ public class PhysicsThread extends Thread {
 
     @Override
     public void run() {
+        try {
 
-        while (!isInterrupted() && this.controller.getModel().getGameState() == AbstractPhysics.GameState.RUNNING) {
+            while (!isInterrupted() && this.controller.getModel().getGameState() == AbstractPhysics.GameState.RUNNING) {
 
-            long start = System.currentTimeMillis();
+                long start = System.currentTimeMillis();
 
-            updateNpc();
+                updateNpc();
 
-            this.controller.getModel().computeState(period);
+                this.controller.getModel().computeState(period);
 
-            checkEndGame();
+                checkEndGame();
 
 
-            // Regulate the speed so it doesn't run too fast
-            long used = System.currentTimeMillis() - start;
-            long sleep = Math.max(0, period - used);
+                // Regulate the speed so it doesn't run too fast
+                long used = System.currentTimeMillis() - start;
+                long sleep = Math.max(0, period - used);
 
-            try {
-                Thread.sleep(sleep);
-            } catch (InterruptedException e) {
-                break;
+                try {
+                    Thread.sleep(sleep);
+                } catch (InterruptedException e) {
+                    break;
+                }
             }
+        } finally {
+            this.controller.getModel().shutdown();   // releases the workers and terminates them
         }
 
         System.out.println("Simulation Ended. Final State: " + controller.getModel().getGameState());
