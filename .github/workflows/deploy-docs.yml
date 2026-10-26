@@ -6,6 +6,9 @@ on:
     paths:
       - 'docs/**'
       - 'mkdocs.yml'
+      - 'scripts/make_pdf.py'
+      - '.github/workflows/deploy-docs.yml'
+  workflow_dispatch:          # allows running it by hand from the Actions tab
 
 permissions:
   contents: read
@@ -28,13 +31,24 @@ jobs:
         with:
           python-version: 3.x
 
-      - name: Install MkDocs and Plugins
+      - name: Install MkDocs, plugins and headless Chromium
         run: |
-          pip install mkdocs-material
-          pip install mkdocs-with-pdf
+          pip install mkdocs-material mkdocs-print-site-plugin playwright
+          python -m playwright install --with-deps chromium
 
       - name: Build MkDocs
         run: mkdocs build
+
+      # print_page/ contains all the chapters on one page; Chromium renders the Mermaid diagrams
+      # and prints it, so the PDF ends up inside the site next to index.html
+      - name: Build PDF
+        run: python scripts/make_pdf.py site site/poool-documentation.pdf
+
+      - name: Upload PDF as workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: poool-documentation
+          path: site/poool-documentation.pdf
 
       - name: Upload Pages Artifact
         uses: actions/upload-pages-artifact@v3

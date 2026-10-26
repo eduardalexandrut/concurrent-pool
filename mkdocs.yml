@@ -19,6 +19,14 @@ theme:
         icon: material/brightness-4
         name: Light theme
 
+nav:
+  - Home: index.md
+  - Analysis: analysis.md
+  - Design: design.md
+  - Behaviour: behaviour.md
+  - Model Checking: model-checking.md
+  - Performance Evaluation: performance-evaluation.md
+
 markdown_extensions:
   - admonition
   - pymdownx.highlight:
@@ -31,4 +39,9 @@ markdown_extensions:
 
 plugins:
   - search
-  - with-pdf
+  - print-site:            # must stay the last plugin
+      add_to_navigation: false
+      add_cover_page: true
+      add_table_of_contents: true
+      enumerate_headings: false
+      print_page_title: "Poool Documentation"
