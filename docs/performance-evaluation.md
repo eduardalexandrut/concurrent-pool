@@ -1,9 +1,5 @@
 # Performance Evaluation
 
-!!! note "To be completed"
-    This chapter describes how the performance is measured and how the results are presented. The parts marked
-    *TODO* must be filled with the measurements taken on the test machine.
-
 The method follows the lab notes *Performance of Concurrent Programs*: first make the program correct, then measure
 (not guess) on representative use cases, looking both at the average (throughput) and at the variance
 (responsiveness).
@@ -29,7 +25,18 @@ The questions are:
 | Speedup | S(p) = T(sequential) / T(p), where T(sequential) is measured with `SequentialPhysics` |
 | Efficiency | E(p) = S(p) / p |
 
-## 3. Use cases
+## 3. Test machine
+| | |
+|---|---|
+| CPU | Intel Xeon @ 2.80 GHz, **2 virtual cores** (Ncpu = 2), virtual machine |
+| Memory | 8 GB, JVM heap fixed with `-Xms2g -Xmx2g` |
+| JVM | OpenJDK 21.0.12, HotSpot 64-bit Server VM |
+| OS | Linux 6.18 |
+
+With only two cores the maximum theoretical speedup is 2. On a machine with more cores the absolute values and the
+best number of threads change; the benchmark can be repeated there with the same commands (section 8).
+
+## 4. Use cases
 The measurements use the real engine (the two player balls, the holes and the scores are included), without the GUI
 and without the 16 ms sleep of the game loop, on the default board (1600x1200, grid 20x20).
 
@@ -39,105 +46,152 @@ and without the 16 ms sleep of the game loop, on the default board (1600x1200, g
 | Heavy game | 5,000 | crowded table |
 | Stress | 1,000 to 40,000 | to find the limit of each version |
 
-The balls are created from a `Random` with a fixed seed and passed to `new Board(width, height, balls)`, so every
-version simulates exactly the same table. The default number of threads is `Runtime.getRuntime().availableProcessors()`
-(Ncpu), not a hard-coded value.
+The balls are created from a `Random` with a fixed seed (42) and passed to `new Board(width, height, balls)`, so every
+version simulates exactly the same table. The executor version always uses `availableProcessors()` threads.
 
-## 4. Measurement loop
+## 5. Measurement loop
+The benchmark is the class `app.bench.Benchmark`. Its core:
+
 ```java
-Random rand = new Random(42);
-List<Ball> balls = new ArrayList<>();
-for (int i = 0; i < numBalls; i++) {
-    double x = 20 + rand.nextDouble() * 1560;
-    double y = 20 + rand.nextDouble() * 1160;
-    balls.add(new Ball(new P2d(x, y), 5, 1.0, new V2d(rand.nextDouble() * 4 - 2, rand.nextDouble() * 4 - 2)));
-}
-Physics physics = new MultiThreadPhysics(new Board(1600, 1200, balls), 20, 20, nThreads);
-
-for (int i = 0; i < 300; i++) {          // warm-up: let the JIT compile the code
+for (int i = 0; i < warmup; i++) {          // warm-up: let the JIT compile the code
     physics.computeState(16);
 }
-long[] times = new long[1000];
-for (int i = 0; i < times.length; i++) {
+long[] times = new long[frames];
+for (int i = 0; i < frames; i++) {
     long start = System.nanoTime();
     physics.computeState(16);
     times[i] = System.nanoTime() - start;
 }
-System.out.println(physics.getStateSnapshot().size());   // use the result
+int remaining = physics.getStateSnapshot().size();   // use the result
 physics.shutdown();
 ```
 
-Each configuration is run **5 times, each time in a new JVM**, and the tables report the mean of the 5 runs.
+E1 and E2 use 300 warm-up frames and 1,000 measured frames, repeated **5 times**; E3 and E4 use 200 + 500 frames,
+repeated **3 times** (the runs with 40,000 balls take minutes). **Every repetition runs in a new JVM**, and the tables
+report the mean of the repetitions. The variation between repetitions (coefficient of variation of the mean frame
+time) is below 5% for every configuration with at least 2,500 balls, and around 10% with 1,000 balls, where a frame
+takes less than half a millisecond.
 
-## 5. Pitfalls
+## 6. Pitfalls
 | Pitfall | How it is handled |
 |---|---|
-| Garbage collection | long runs (1,000 frames) so that the GC runs several times; fixed heap (`-Xms2g -Xmx2g`); GC activity checked with `-Xlog:gc` |
-| Dynamic compilation | 300 warm-up frames that are not measured; checked with `-XX:+PrintCompilation` that almost no method is compiled during the measured frames |
+| Garbage collection | long runs (500 to 1,000 frames), so that the GC runs several times during the measure and its cost is part of the mean; fixed heap (`-Xms2g -Xmx2g`) |
+| Dynamic compilation | warm-up frames that are not measured; each repetition in a new JVM |
 | Unrealistic code paths | the measured code is the real engine, called in the same way as the game loop |
 | Unrealistic contention | real board, real ball distribution, real locks |
-| Dead code elimination | the result of the simulation (number of balls) is printed at the end |
+| Dead code elimination | the result of the simulation (number of balls left) is printed at the end |
 
-## 6. Experiments
-| Experiment | What changes | What is fixed |
-|---|---|---|
-| E1 Use cases | version (sequential, multithreaded, executor), 1,000 and 5,000 balls | threads = Ncpu |
-| E2 Number of threads | threads = 1, 2, 4, ..., Ncpu, **Ncpu + 1**, 2 x Ncpu (multithreaded version) | 10,000 balls |
-| E3 Number of balls | 1,000 to 40,000 balls, all three versions | threads = Ncpu |
-| E4 Grid size | 5x5, 10x10, 15x15, 20x20 | 10,000 balls, threads = Ncpu |
-
-In E4, 20 rows is the maximum for this board: the cells must be at least 60 px high (the diameter of the player
-balls).
-
-During one run of E2 I also use a profiler (VisualVM or Java Mission Control) to see the state of the threads (running,
-waiting on the barrier, waiting on a cell) and where they block on locks, and `vmstat 1` to count the context
-switches.
+The maximum frame time is sensitive to GC pauses and to the scheduler of the virtual machine: it is reported but not
+used to compare the versions.
 
 ## 7. Results
 ### 7.1 Use cases (E1)
-*TODO: table with version, balls, mean, standard deviation, p95, p99, max, frames per second, % of frames under 16.6 ms.*
+Threads = Ncpu = 2, grid 20x20, mean of 5 runs. Times in milliseconds.
 
-*TODO: chart of the distribution of the frame times (percentage of frames under x ms) for each version.*
+| Version | Balls | Mean | SD | p95 | p99 | Max | FPS | Frames ≤ 16.6 ms |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| Sequential | 1,000 | 0.40 | 0.18 | 0.57 | 0.83 | 3.91 | 2,490 | 100% |
+| MultiThread | 1,000 | 0.43 | 0.35 | 0.69 | 2.04 | 5.63 | 2,343 | 100% |
+| Executor | 1,000 | 0.72 | 0.46 | 1.18 | 2.97 | 6.38 | 1,405 | 100% |
+| Sequential | 5,000 | 5.89 | 1.15 | 8.01 | 9.81 | 16.98 | 170 | 99.9% |
+| MultiThread | 5,000 | **3.59** | 1.02 | 4.87 | 7.30 | 19.84 | 279 | 99.9% |
+| Executor | 5,000 | 5.68 | 0.92 | 7.33 | 8.66 | 12.54 | 176 | 100% |
 
-To discuss: with 1,000 balls, is the concurrent version useful at all? If every version is far under 16.6 ms, the
-threads only add overhead.
+With **1,000 balls** (the default game) concurrency is useless: a frame takes 0.4 ms, forty times less than the budget
+of 16.6 ms, and the threads only add overhead. The multithreaded version is as fast as the sequential one but with
+twice the variance (p99 2.0 ms against 0.8 ms); the executor version is almost twice as slow.
+
+With **5,000 balls** the multithreaded version is clearly the fastest (speedup 1.64), while the executor version is
+only as fast as the sequential one.
 
 ### 7.2 Number of threads (E2)
-*TODO: table with threads, mean frame time, speedup, efficiency.*
+MultiThread version, 10,000 balls, grid 20x20, mean of 5 runs. T(sequential) = 21.78 ms.
 
-*TODO: chart of the speedup compared to the ideal line S = p.*
+| Threads | Mean (ms) | p99 (ms) | Frames ≤ 16.6 ms | Speedup | Efficiency |
+|---:|---:|---:|---:|---:|---:|
+| 1 | 21.34 | 32.10 | 0% | 1.02 | 1.02 |
+| **2 (Ncpu)** | **12.23** | 19.30 | 96.9% | **1.78** | 0.89 |
+| 3 (Ncpu + 1) | 13.99 | 21.53 | 87.3% | 1.56 | 0.52 |
+| 4 (2 x Ncpu) | 12.91 | 19.70 | 93.8% | 1.69 | 0.42 |
 
-To discuss:
+- **1 thread** is as fast as the sequential version: the cost of the barrier (two `await` per frame) and of the cell
+  counters is negligible compared with the work of a frame.
+- **2 threads** give the best result, a speedup of 1.78 on 2 cores (efficiency 0.89).
+- **Ncpu + 1 = 3 threads is worse than Ncpu.** The rows are split 7/7/6 on 2 cores: one core has to run two workers,
+  and since the end barrier waits for the slowest worker, that core decides the frame time. The rule Ncpu + 1 is meant
+  for tasks that sometimes block (page faults, I/O): here the workers only block on the barrier and on the cells, and
+  those waits are caused by the threads themselves, so an extra thread does not fill idle time.
+- **4 threads** are again close to 2, because 4 workers divide the 20 rows evenly between the two cores (5 + 5 each),
+  but they add context switches and are never better than 2.
 
-- where the speedup stops growing, compared with the number of cores;
-- whether **Ncpu + 1** threads is better than Ncpu, as the rule for CPU-bound tasks suggests;
-- what happens with more threads than cores: more context switches, and at every frame the barrier waits for the
-  slowest worker, so a worker that is descheduled slows down all the others;
-- the ratio W/C (waiting time / computing time) of the workers seen in the profiler. Here the waits are not I/O but
-  synchronisation (barrier and cells), and they grow with the number of threads, so the formula
-  Nthreads = Ncpu x Ucpu x (1 + W/C) for blocking tasks should not suggest more threads than Ncpu + 1.
+The number of threads that should be used is therefore **Ncpu**, the default of the `MultiThreadPhysics` constructor.
 
 ### 7.3 Number of balls (E3)
-*TODO: chart of the mean frame time against the number of balls for the three versions, with the 16.6 ms line.*
+Threads = 2, grid 20x20, mean of 3 runs. Mean frame time in milliseconds, speedup against the sequential version in
+brackets.
 
-To discuss: the largest number of balls that each version handles within 16.6 ms, and below which number of balls the
-sequential version is faster than the concurrent ones.
+| Balls | Sequential | MultiThread | Executor |
+|---:|---:|---:|---:|
+| 1,000 | 0.44 | 0.47 (0.94) | 0.70 (0.63) |
+| 2,500 | 1.61 | 1.10 (1.46) | 2.09 (0.77) |
+| 5,000 | 5.37 | 3.49 (1.54) | 5.79 (0.93) |
+| 10,000 | 22.23 | **11.34 (1.96)** | 18.30 (1.21) |
+| 20,000 | 79.88 | 44.03 (1.81) | 54.70 (1.46) |
+| 40,000 | 281.58 | 153.82 (1.83) | 183.91 (1.53) |
+
+- The frame time grows faster than linearly with the number of balls: the collisions inside a cell are quadratic in
+  the number of its balls (twice the balls, about four times the time with a fixed grid).
+- **Limit of 60 FPS (mean ≤ 16.6 ms):** the sequential and the executor versions stay under the limit up to between
+  5,000 and 10,000 balls; the multithreaded version still does at 10,000 balls (11.3 ms, 98.5% of frames under
+  16.6 ms).
+- **Under about 1,000 balls** the sequential version is the fastest: the work of a frame is too small to pay for the
+  synchronisation. The multithreaded version is faster from 2,500 balls; the executor version only from 10,000 balls.
+- The speedup of the multithreaded version settles around 1.8–1.9 on 2 cores.
 
 ### 7.4 Grid size (E4)
-*TODO: chart of the frame time against the number of cells.*
+10,000 balls, mean of 3 runs. MultiThread with 2 threads, sequential as reference.
 
-To discuss: the grid is a form of **lock striping** (one lock per cell instead of one for the whole board). With few
-big cells each lock is held for a long time (the collisions inside a cell are quadratic in the number of its balls);
-with many small cells there are more lock operations per frame.
+| Grid | Cells | Balls per cell | Sequential (ms) | MultiThread (ms) | Speedup |
+|---|---:|---:|---:|---:|---:|
+| 5x5 | 25 | 400 | 253.81 | 189.77 | 1.34 |
+| 10x10 | 100 | 100 | 69.61 | 37.87 | 1.84 |
+| 15x15 | 225 | 44 | 36.37 | 21.58 | 1.69 |
+| 20x20 | 400 | 25 | 21.05 | 11.97 | 1.76 |
+
+The grid is a form of **lock striping**: one lock per cell instead of one for the whole board. More cells mean fewer
+balls per cell, so fewer pairs to check (the time drops from 254 ms to 21 ms in the sequential version) and shorter
+critical sections. With the 5x5 grid there are only 5 rows for 2 workers (3 + 2), so the work is unbalanced and the
+speedup is only 1.34. 20x20 is the finest grid allowed on this board (cells must be at least 60 px high, the
+diameter of the player balls) and it is the fastest.
 
 ### 7.5 Sources of serialisation
-To discuss with the profiler results:
-
-- the part of the frame executed only by the game loop (`initFrame` on every cell) limits the speedup (Amdahl's law);
-- the `ExecutorService` uses a shared queue for the tasks, a serialisation hidden in the library; it creates
-  2 x rows tasks per frame, while the multithreaded version only uses the barrier twice per frame;
-- whether the cell locks are actually contended (threads blocked on them in the profiler) or almost always free. An
-  uncontended lock is cheap; optimisation is useful only where contention actually happens.
+- **Work done only by the game loop.** `initFrame` on all the 400 cells and the user input are executed by one
+  thread before the workers start (Amdahl's law). The result of E2 with 1 thread (same time as the sequential version)
+  shows that this part, together with the barrier, is small.
+- **Load balance.** The frame ends when the slowest worker reaches the end barrier: with few rows (E4, 5x5) or a
+  number of workers that does not divide the rows evenly between the cores (E2, 3 threads) the speedup drops.
+- **Executor.** `ExecutorPhysics` waits for *all* collision tasks with `invokeAll` before starting the movement tasks.
+  This is a global barrier between the two phases, while the multithreaded version only waits on the counter of each
+  cell, so a worker can start moving its rows while another is still colliding. In addition it creates and submits
+  2 x 20 = 40 tasks per frame through the shared queue of the pool. This explains why it is always slower than the
+  multithreaded version, and slower than the sequential one up to about 5,000 balls.
 
 ### 7.6 Conclusion
-*TODO: which version is the fastest, under which load, with how many threads.*
+On the test machine (2 cores):
+
+- for the **default game (1,000 balls)** all three versions run at well over 60 FPS, and the sequential version is the
+  fastest;
+- **from about 2,500 balls** the **multithreaded version with Ncpu threads** is the fastest, with a speedup of
+  1.5–1.96 on 2 cores, and it is the only version that keeps 60 FPS with 10,000 balls;
+- the **executor version** is always slower than the multithreaded one, because of the global wait between the
+  phases and the task overhead;
+- **Ncpu + 1** threads do not help, because the workers never block on I/O.
+
+## 8. How to repeat the measurements
+```bash
+javac -encoding UTF-8 -d out $(find src/main/java -name "*.java")
+# java app.bench.Benchmark <seq|mt|exec> <balls> <threads> <grid> [warmup] [frames]
+java -Xms2g -Xmx2g -cp out app.bench.Benchmark mt 10000 2 20
+```
+Each call prints one CSV line:
+`engine,balls,threads,grid,mean,sd,p95,p99,max,fps,%frames≤16.6ms,balls left`.
