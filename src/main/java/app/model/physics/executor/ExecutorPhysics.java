@@ -65,5 +65,9 @@ public class ExecutorPhysics extends AbstractPhysics implements Physics {
         }
     }
 
+    @Override
+    protected void stopWorkers() {
+        executor.shutdown();
+    }
 
 }

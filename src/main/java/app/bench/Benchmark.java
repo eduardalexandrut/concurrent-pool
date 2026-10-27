@@ -1,4 +1,4 @@
-package app;
+package app.bench;
 
 import app.model.Physics;
 import app.model.entities.game.Ball;
